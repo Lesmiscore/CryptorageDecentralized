@@ -1,0 +1,17 @@
+bin/
+gen/
+obj/
+.gradle/
+build/*
+*.iml
+.idea/
+*/*.iml
+out/
+*/out/
+*/build/*
+
+!*.java
+
+src/solidity/
+contract/build/
+
