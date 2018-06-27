@@ -1,14 +1,21 @@
 package com.nao20010128nao.Cryptorage
 
+import com.google.common.base.Optional
 import com.google.common.io.ByteSink
 import com.google.common.io.ByteSource
 import com.nao20010128nao.Cryptorage.internal.contract.FileSourceContract
 import com.nao20010128nao.Cryptorage.internal.file.FileSource
 import io.ipfs.api.IPFS
+import io.ipfs.api.NamedStreamable
+import io.ipfs.multihash.Multihash
 import org.web3j.crypto.Credentials
 import org.web3j.crypto.ECKeyPair
 import org.web3j.protocol.Web3j
 import org.web3j.protocol.http.HttpService
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.io.InputStream
+import java.io.OutputStream
 
 class DecentralizedFileSource(private val options: DecentralizedFileSourceOptions) : FileSource {
     private val web3j: Web3j = Web3j.build(HttpService(options.ethRemote))
@@ -40,21 +47,37 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
         }
     }
 
-    override fun list(): Array<String> {
+    override fun list(): Array<String> = notClosed {
         if (hasChanged) {
             // terminate each by BEL
             listCache = contract.getFileListCombined(byteArrayOf(7)).send().split(7.toChar())
         }
         hasChanged = false
-        return listCache.toTypedArray()
+        listCache.toTypedArray()
     }
 
-    override fun open(name: String, offset: Int): ByteSource {
-        TODO("not implemented")
+    override fun open(name: String, offset: Int): ByteSource = invalidating {
+        object : ByteSource() {
+            val ipfsAddress by lazy { contract.getFile(name).send()!! }
+            val ipfsResult by lazy { ipfs.cat(Multihash.fromBase58(ipfsAddress))!! }
+            override fun openStream(): InputStream = ByteArrayInputStream(ipfsResult)
+            override fun sizeIfKnown(): Optional<Long> = try {
+                Optional.of(ipfsResult.size.toLong())
+            } catch (e: Throwable) {
+                Optional.absent()
+            }
+        }
     }
 
-    override fun put(name: String): ByteSink {
-        TODO("not implemented")
+    override fun put(name: String): ByteSink = invalidating {
+        object : ByteSink() {
+            override fun openStream(): OutputStream = object : ByteArrayOutputStream() {
+                override fun close() {
+                    val whatToSend = ipfs.add(NamedStreamable.ByteArrayWrapper(name, toByteArray()))[0].hash.toBase58()
+                    contract.setFile(name, whatToSend).send()
+                }
+            }
+        }
     }
 
     private inline fun <T> notClosed(f: () -> T): T {
