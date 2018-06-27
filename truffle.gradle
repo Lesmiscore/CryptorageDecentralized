@@ -8,7 +8,7 @@ task truffleCompile(type: Exec) {
 task web3jContractWrapper(type: Exec) {
     dependsOn "truffleCompile"
     workingDir "."
-    commandLine "web3j", "truffle", "generate", "./contract/build/contracts/FileSource.json", "-o", "./src/solidity", "-p", "com.nao20010128nao.Cryptorage"
+    commandLine "web3j", "truffle", "generate", "./contract/build/contracts/FileSourceContract.json", "-o", "./src/solidity", "-p", "com.nao20010128nao.Cryptorage.internal.contract"
     inputs.files "./contract/build"
     outputs.files "./src/solidity"
 }

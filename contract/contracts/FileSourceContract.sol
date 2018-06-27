@@ -1,6 +1,6 @@
 pragma solidity ^0.4.19;
 
-contract FileSource {
+contract FileSourceContract {
     address private owner;
     mapping(string => string) private files;
     string[] private fileList;
