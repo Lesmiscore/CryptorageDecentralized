@@ -63,4 +63,10 @@ class Tests {
         println(cryptorage.list().joinToString("\n"))
         println(cryptorage.open("Test").read().toString(Charsets.UTF_8))
     }
+
+    @Test
+    fun testExplosion() {
+        val fs = DecentralizedFileSource(options)
+        fs.explode()
+    }
 }

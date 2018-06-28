@@ -23,10 +23,19 @@ contract FileSourceContract {
         alive = false;
     }
 
+    modifier noAlive() {
+        require(msg.sender == owner);
+        _;
+    }
+
     modifier restricted() {
         require(msg.sender == owner);
         require(alive);
         _;
+    }
+
+    function isAlive() public view noAlive returns (uint) {
+        return alive ? 1 : -1;
     }
 
     function setFile(string filename, string ipfsDir) public restricted {

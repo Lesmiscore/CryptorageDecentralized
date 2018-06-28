@@ -34,6 +34,11 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
     private var hasChanged: Boolean = true
     private var listCache: List<String> = emptyList()
 
+    init {
+        // we check for its life
+        require(contract.isAlive.send().signum() > 0)
+    }
+
     override val isReadOnly: Boolean = false
 
     override fun close() {
