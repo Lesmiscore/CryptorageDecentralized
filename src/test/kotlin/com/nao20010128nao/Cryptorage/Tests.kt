@@ -16,7 +16,7 @@ class Tests {
             privateKey = privateKey
     )
 
-    @Test
+    //@Test
     fun testDeploy() {
         val options = DecentralizedFileSourceOptions(
                 contractAddress = "",
@@ -27,7 +27,7 @@ class Tests {
         println(FileSourceContract.deploy(w3j, cred, options.gasPrice, options.gasLimit).send().contractAddress)
     }
 
-    @Test
+    //@Test
     fun testMultiaddress() {
         val ma = MultiAddress("/ip6/ipfs.infura.io/tcp/80")
         println(ma)
@@ -65,6 +65,13 @@ class Tests {
     }
 
     @Test
+    fun testCompress() {
+        val fs = DecentralizedFileSource(options)
+        val cryptorage = fs.withV1Encryption("Decentralized")
+        cryptorage.compressIfPossible(true)
+    }
+
+    //@Test
     fun testExplosion() {
         val fs = DecentralizedFileSource(options)
         fs.explode()
