@@ -17,6 +17,7 @@ import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.io.OutputStream
+import java.math.BigInteger
 
 class DecentralizedFileSource(private val options: DecentralizedFileSourceOptions) : FileSource {
     private val web3j: Web3j = Web3j.build(HttpService(options.ethRemote))
@@ -29,6 +30,7 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
             options.gasPrice,
             options.gasLimit
     )
+    private val contractVersion: BigInteger
 
     private var closed = false
     private var hasChanged: Boolean = true
@@ -37,6 +39,7 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
     init {
         // we check for its life
         require(contract.isAlive.send().signum() > 0)
+        contractVersion = contract.version.send()
     }
 
     override val isReadOnly: Boolean = false

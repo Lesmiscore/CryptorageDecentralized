@@ -15,6 +15,10 @@ contract FileSourceContract {
         alive = true;
     }
 
+    function getVersion() public pure returns (uint) {
+        return 1;
+    }
+
     function explode() public restricted {
         for (uint i = 0; i < fileList.length; i++) {
             files[fileList[i]] = "";
@@ -34,8 +38,8 @@ contract FileSourceContract {
         _;
     }
 
-    function isAlive() public view noAlive returns (uint) {
-        return alive ? 1 : -1;
+    function isAlive() public view noAlive returns (int) {
+        return alive ? int(1) : int(1);
     }
 
     function setFile(string filename, string ipfsDir) public restricted {
