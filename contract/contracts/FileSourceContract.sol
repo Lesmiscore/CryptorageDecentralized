@@ -1,12 +1,16 @@
 pragma solidity ^0.4.19;
 
+// WARN: Do not use on Mainnet:
+// This is created by my hobby and is NOT completely secure.
+// Use at your own risk, and be careful for loosing your money.
+
 contract FileSourceContract {
     address private owner;
     mapping(string => string) private files;
     string[] private fileList;
     bool private alive;
 
-    function FileSource() public {
+    function FileSourceContract() public {
         owner = msg.sender;
         alive = true;
     }

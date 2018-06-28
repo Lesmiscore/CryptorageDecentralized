@@ -12,6 +12,7 @@ import org.web3j.crypto.Credentials
 import org.web3j.crypto.ECKeyPair
 import org.web3j.protocol.Web3j
 import org.web3j.protocol.http.HttpService
+import org.web3j.tx.exceptions.ContractCallException
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
@@ -19,7 +20,7 @@ import java.io.OutputStream
 
 class DecentralizedFileSource(private val options: DecentralizedFileSourceOptions) : FileSource {
     private val web3j: Web3j = Web3j.build(HttpService(options.ethRemote))
-    private val ipfs: IPFS = IPFS(options.ipfsRemote)
+    private val ipfs: IPFS = IPFS(options.ipfsRemote.toCrazyMultiAddress())
     private val keyPair = ECKeyPair.create(options.privateKey)
     private val contract = FileSourceContract.load(
             options.contractAddress,
@@ -50,7 +51,15 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
     override fun list(): Array<String> = notClosed {
         if (hasChanged) {
             // terminate each by BEL
-            listCache = contract.getFileListCombined(byteArrayOf(7)).send().split(7.toChar())
+            listCache = try {
+                contract.getFileListCombined(byteArrayOf(7)).send().split(7.toChar())
+            } catch (e: ContractCallException) {
+                if (e.message == "Empty value (0x) returned from contract") {
+                    emptyList()
+                } else {
+                    throw e
+                }
+            }
         }
         hasChanged = false
         listCache.toTypedArray()
@@ -78,6 +87,11 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
                 }
             }
         }
+    }
+
+    fun explode() {
+        contract.explode().send()
+        close()
     }
 
     private inline fun <T> notClosed(f: () -> T): T {
