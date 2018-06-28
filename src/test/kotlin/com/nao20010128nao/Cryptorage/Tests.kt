@@ -10,7 +10,7 @@ import org.web3j.protocol.http.HttpService
 
 class Tests {
     val privateKey = "21414846105131974946245667778939696990523040918621528349361374646791088162864".toBigInteger()
-    val contract = "0x6F32957e1AA92231fA6d18DD66952B0816E0ac5E"
+    val contract = "0xc72c24c055e59d3c07e3f473d39ce6fb73ec9799"
     val options = DecentralizedFileSourceOptions(
             contractAddress = contract,
             privateKey = privateKey
