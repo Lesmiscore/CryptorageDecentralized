@@ -39,7 +39,7 @@ contract FileSourceContract {
     }
 
     function isAlive() public view noAlive returns (int) {
-        return alive ? int(1) : int(1);
+        return alive ? int(1) : int(-1);
     }
 
     function setFile(string filename, string ipfsDir) public restricted {
