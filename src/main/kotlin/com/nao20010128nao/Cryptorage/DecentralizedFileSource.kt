@@ -45,6 +45,7 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
     override val isReadOnly: Boolean = false
 
     override fun close() {
+        options.ethScheduler.waitForAll()
     }
 
     override fun commit() {
@@ -52,7 +53,9 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
 
     override fun delete(name: String) {
         invalidating {
-            contract.removeFile(name).send()
+            options.ethScheduler.execute {
+                contract.removeFile(name).send()
+            }
         }
     }
 
@@ -90,8 +93,10 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
         object : ByteSink() {
             override fun openStream(): OutputStream = object : ByteArrayOutputStream() {
                 override fun close() {
-                    val whatToSend = ipfs.add(NamedStreamable.ByteArrayWrapper(name, toByteArray()))[0].hash.toBase58()
-                    contract.setFile(name, whatToSend).send()
+                    options.ethScheduler.execute {
+                        val whatToSend = ipfs.add(NamedStreamable.ByteArrayWrapper(name, toByteArray()))[0].hash.toBase58()
+                        contract.setFile(name, whatToSend).send()
+                    }
                 }
             }
         }

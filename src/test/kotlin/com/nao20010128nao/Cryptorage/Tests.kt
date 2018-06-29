@@ -1,6 +1,7 @@
 package com.nao20010128nao.Cryptorage
 
 import com.nao20010128nao.Cryptorage.internal.contract.FileSourceContract
+import com.nao20010128nao.Cryptorage.runner.SimpleAsyncTaskScheduler
 import io.ipfs.multiaddr.MultiAddress
 import org.junit.Test
 import org.web3j.crypto.Credentials
@@ -69,6 +70,18 @@ class Tests {
         val fs = DecentralizedFileSource(options)
         val cryptorage = fs.withV1Encryption("Decentralized")
         cryptorage.compressIfPossible(true)
+    }
+
+    @Test
+    fun testAsync() {
+        val fs = DecentralizedFileSource(options.copy(ethScheduler = SimpleAsyncTaskScheduler()))
+        val cryptorage = fs.withV1Encryption("Decentralized")
+        println("Writing")
+        (1..10).forEach {
+            println("Writing: $it")
+            cryptorage.put("aa$it").write("Say YES for decentralized file system!".toByteArray())
+        }
+        cryptorage.close()
     }
 
     //@Test

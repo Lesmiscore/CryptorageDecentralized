@@ -1,5 +1,7 @@
 package com.nao20010128nao.Cryptorage
 
+import com.nao20010128nao.Cryptorage.runner.DirectTaskScheduler
+import com.nao20010128nao.Cryptorage.runner.TaskScheduler
 import java.math.BigInteger
 
 data class DecentralizedFileSourceOptions(
@@ -8,5 +10,6 @@ data class DecentralizedFileSourceOptions(
         val contractAddress: String,
         val privateKey: BigInteger,
         val gasPrice: BigInteger = gwei,
-        val gasLimit: BigInteger = defaultGasLimit
+        val gasLimit: BigInteger = defaultGasLimit,
+        val ethScheduler: TaskScheduler = DirectTaskScheduler
 )
