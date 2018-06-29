@@ -8,6 +8,7 @@ import org.web3j.crypto.Credentials
 import org.web3j.crypto.ECKeyPair
 import org.web3j.protocol.Web3j
 import org.web3j.protocol.http.HttpService
+import java.security.SecureRandom
 
 class Tests {
     val privateKey = "21414846105131974946245667778939696990523040918621528349361374646791088162864".toBigInteger()
@@ -16,6 +17,23 @@ class Tests {
             contractAddress = contract,
             privateKey = privateKey
     )
+
+    //@Test
+    fun testCreatePrivKey() {
+        val priv = ByteArray(32)
+        SecureRandom().nextBytes(priv)
+        val ec = ECKeyPair.create(priv)
+        println(ec.privateKey)
+        println(Credentials.create(ec).address)
+    }
+
+    //@Test
+    fun testPrivKeyToAddress() {
+        val priv = "21414846105131974946245667778939696990523040918621528349361374646791088162864".toBigInteger()
+        val ec = ECKeyPair.create(priv)
+        println(ec.privateKey)
+        println(Credentials.create(ec).address)
+    }
 
     //@Test
     fun testDeploy() {
@@ -36,7 +54,7 @@ class Tests {
         println(ma.bytes.joinToString("") { "%02x".format(it) })
     }
 
-    @Test
+    //@Test
     fun testSimple() {
         val fs = DecentralizedFileSource(options)
         val cryptorage = fs.withV1Encryption("Decentralized")
@@ -45,7 +63,7 @@ class Tests {
         cryptorage.close()
     }
 
-    @Test
+    //@Test
     fun testSimple2() {
         val fs = DecentralizedFileSource(options)
         val cryptorage = fs.withV1Encryption("Decentralized")
@@ -65,14 +83,14 @@ class Tests {
         println(cryptorage.open("Test").read().toString(Charsets.UTF_8))
     }
 
-    @Test
+    //@Test
     fun testCompress() {
         val fs = DecentralizedFileSource(options)
         val cryptorage = fs.withV1Encryption("Decentralized")
         cryptorage.compressIfPossible(true)
     }
 
-    @Test
+    //@Test
     fun testAsync() {
         val fs = DecentralizedFileSource(options.copy(ethScheduler = SimpleAsyncTaskScheduler()))
         val cryptorage = fs.withV1Encryption("Decentralized")
