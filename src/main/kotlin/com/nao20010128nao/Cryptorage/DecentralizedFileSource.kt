@@ -77,9 +77,9 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
         object : ByteSource() {
             val ipfsAddress by lazy { contract.getFile(name).send()!! }
             val ipfsResult by lazy { ipfs.cat(Multihash.fromBase58(ipfsAddress))!! }
-            override fun openStream(): InputStream = ByteArrayInputStream(ipfsResult)
+            override fun openStream(): InputStream = ByteArrayInputStream(ipfsResult, offset, ipfsResult.size - offset)
             override fun sizeIfKnown(): Optional<Long> = try {
-                Optional.of(ipfsResult.size.toLong())
+                Optional.of(ipfsResult.size.toLong() - offset)
             } catch (e: Throwable) {
                 Optional.absent()
             }
