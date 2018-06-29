@@ -32,7 +32,7 @@ class Tests {
         val ma = MultiAddress("/ip6/ipfs.infura.io/tcp/80")
         println(ma)
         println(ma.bytes.size)
-        println(ma.bytes.map { "%02x".format(it) }.joinToString(""))
+        println(ma.bytes.joinToString("") { "%02x".format(it) })
     }
 
     @Test
