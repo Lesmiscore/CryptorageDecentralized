@@ -101,7 +101,9 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
     }
 
     fun explode() {
-        contract.explode().send()
+        options.ethScheduler.execute {
+            contract.explode().send()
+        }
         close()
     }
 
