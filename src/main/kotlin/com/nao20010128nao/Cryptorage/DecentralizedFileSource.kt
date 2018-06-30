@@ -63,7 +63,7 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
         if (hasChanged) {
             // terminate each by BEL
             listCache = try {
-                contract.getFileListCombined(byteArrayOf(7)).send().split(7.toChar())
+                contract.getFileListCombined(byteArrayOf(7)).send().split(7.toChar()).dropLastWhile { it.isEmpty() }
             } catch (e: ContractCallException) {
                 if (e.message == "Empty value (0x) returned from contract") {
                     emptyList()
