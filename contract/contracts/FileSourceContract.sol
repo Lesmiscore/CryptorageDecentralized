@@ -1,5 +1,7 @@
 pragma solidity ^0.4.19;
 
+import "./strings.sol";
+
 // WARN: Do not use on Mainnet:
 // This is created by my hobby and is NOT completely secure.
 // Use at your own risk, and be careful for loosing your money.
@@ -16,7 +18,7 @@ contract FileSourceContract {
     }
 
     function getVersion() public pure returns (uint) {
-        return 1;
+        return 2;
     }
 
     function explode() public restricted {
@@ -25,7 +27,7 @@ contract FileSourceContract {
         }
         fileList.length = 0;
         alive = false;
-        selfdestruct(msg.owner);
+        selfdestruct(owner);
     }
 
     modifier noAlive() {
@@ -54,7 +56,7 @@ contract FileSourceContract {
     }
 
     function removeFile(string filename) public restricted returns (bool){
-        bytes32 nameHashes = keccak256(abi.encodePacked(filename));
+        bytes32 nameHashed = keccak256(abi.encodePacked(filename));
         for (uint i = 0; i < fileList.length; i++) {
             if (keccak256(abi.encodePacked(fileList[i])) == nameHashed) {
                 fileList[i] = fileList[fileList.length - 1];
@@ -91,5 +93,37 @@ contract FileSourceContract {
             }
         }
         return string(data);
+    }
+
+    function removeFilesMultiple(string data, string terminator) public restricted {
+        var dataSlice = strings.toSlice(data);
+        var terminatorSlice = strings.toSlice(terminator);
+        uint parts = strings.count(dataSlice, terminatorSlice);
+        for (uint i = 0; i <= parts; i++) {
+            removeFile(strings.toString(strings.split(dataSlice, terminatorSlice)));
+        }
+    }
+
+    // key comp key comp ... kv value comp value comp value ..
+    function setFilesMultiple(string data, string kvSplit, string compSplit) public restricted {
+        bytes32 emptyStr = keccak256(abi.encodePacked(""));
+
+        var dataSlice = strings.toSlice(data);
+        var kvSlice = strings.toSlice(kvSplit);
+        var compSlice = strings.toSlice(compSplit);
+
+        require(strings.count(dataSlice, kvSlice) == 1);
+        var keySlice = strings.split(dataSlice, kvSlice);
+        var valueSlice = strings.split(dataSlice, kvSlice);
+        uint size = strings.count(keySlice, compSlice);
+        require(size == strings.count(valueSlice, compSlice));
+
+        for (uint i = 0; i <= size; i++) {
+            string memory keyStr = strings.toString(strings.split(keySlice, compSlice));
+            string memory valueStr = strings.toString(strings.split(valueSlice, compSlice));
+            if (keccak256(abi.encodePacked(files[keyStr])) == emptyStr)
+                fileList.push(keyStr);
+            files[keyStr] = valueStr;
+        }
     }
 }
