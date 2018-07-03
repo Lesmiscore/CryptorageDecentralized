@@ -150,7 +150,7 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
         val split = generateSequence { randomHex() }.first { it !in joined }
         val toSend = removePending.joinToString(split)
         options.ethScheduler.execute {
-            contract.removeFilesMultiple(toSend, split)
+            contract.removeFilesMultiple(toSend, split).send()
         }
         removePending = invalidatedList()
     }
@@ -168,7 +168,7 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
         val toSendFinal = toSendKey + kvSplit + toSendValue
 
         options.ethScheduler.execute {
-            contract.setFilesMultiple(toSendFinal, kvSplit, compSplit)
+            contract.setFilesMultiple(toSendFinal, kvSplit, compSplit).send()
         }
         addPending = invalidatedMap()
     }

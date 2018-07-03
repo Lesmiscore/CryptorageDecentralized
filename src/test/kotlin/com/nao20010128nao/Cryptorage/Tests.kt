@@ -12,7 +12,12 @@ import java.security.SecureRandom
 
 class Tests {
     val privateKey = "21414846105131974946245667778939696990523040918621528349361374646791088162864".toBigInteger()
-    val contract = "0xc72c24c055e59d3c07e3f473d39ce6fb73ec9799"
+    val contractVersion = FileSourceContractSpecs.V2
+    val contract = when (contractVersion) {
+        FileSourceContractSpecs.V1 -> "0xc72c24c055e59d3c07e3f473d39ce6fb73ec9799"
+        FileSourceContractSpecs.V2 -> "0x5c94436e252226233c52c0ae62177e7c7ad22c45"
+        else -> throw Error("Unrecognized version")
+    }
     val options = DecentralizedFileSourceOptions(
             contractAddress = contract,
             privateKey = privateKey
@@ -63,7 +68,7 @@ class Tests {
         cryptorage.close()
     }
 
-    //@Test
+    @Test
     fun testSimple2() {
         val fs = DecentralizedFileSource(options)
         val cryptorage = fs.withV1Encryption("Decentralized")
