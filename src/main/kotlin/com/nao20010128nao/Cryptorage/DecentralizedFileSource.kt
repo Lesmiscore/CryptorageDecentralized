@@ -17,7 +17,6 @@ import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.io.OutputStream
-import java.math.BigInteger
 
 class DecentralizedFileSource(private val options: DecentralizedFileSourceOptions) : FileSource {
     private val web3j: Web3j = Web3j.build(HttpService(options.ethRemote))
@@ -30,16 +29,18 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
             options.gasPrice,
             options.gasLimit
     )
-    private val contractVersion: BigInteger
+    private val contractVersion: FileSourceContractSpecs
 
     private var closed = false
-    private var hasChanged: Boolean = true
-    private var listCache: List<String> = emptyList()
+    private var listCache: List<String> = invalidatedList()
+    private var removePending: List<String> = invalidatedList()
+    private var addPending: Map<String, String> = invalidatedMap()
 
     init {
         // we check for its life
         require(contract.isAlive.send().signum() > 0)
-        contractVersion = contract.version.send()
+        contractVersion = FileSourceContractSpecs.values()[contract.version.send().toInt()]
+        require(contractVersion != FileSourceContractSpecs.NON_EXISTENT)
     }
 
     override val isReadOnly: Boolean = false
@@ -53,14 +54,19 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
 
     override fun delete(name: String) {
         invalidating {
-            options.ethScheduler.execute {
-                contract.removeFile(name).send()
+            if (contractVersion.hasMultipleAddDel) {
+                removePending += name
+                sendOrNothing(Action.REMOVE)
+            } else {
+                options.ethScheduler.execute {
+                    contract.removeFile(name).send()
+                }
             }
         }
     }
 
     override fun list(): Array<String> = notClosed {
-        if (hasChanged) {
+        if (listCache == InvalidatedList) {
             // terminate each by BEL
             listCache = try {
                 contract.getFileListCombined(byteArrayOf(7)).send().split(7.toChar()).dropLastWhile { it.isEmpty() }
@@ -72,7 +78,6 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
                 }
             }
         }
-        hasChanged = false
         listCache.toTypedArray()
     }
 
@@ -91,10 +96,70 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
         object : ByteSink() {
             override fun openStream(): OutputStream = object : ByteArrayOutputStream() {
                 override fun close() {
-                    options.ethScheduler.execute {
-                        val whatToSend = ipfs.add(NamedStreamable.ByteArrayWrapper(name, toByteArray()))[0].hash.toBase58()
-                        contract.setFile(name, whatToSend).send()
+                    val whatToSend = ipfs.add(NamedStreamable.ByteArrayWrapper(name, toByteArray()))[0].hash.toBase58()
+                    if (contractVersion.hasMultipleAddDel) {
+                        addPending = addPending.setValue(name, whatToSend)
+                        sendOrNothing(Action.SET_FILE)
+                    } else {
+                        options.ethScheduler.execute {
+                            contract.setFile(name, whatToSend).send()
+                        }
                     }
+                }
+            }
+        }
+    }
+
+    private fun sendOrNothing(action: Action) {
+        if (!contractVersion.hasMultipleAddDel) {
+            return
+        }
+        val flushRemovePending = {
+            val joined = removePending.joinToString("")
+            val split = generateSequence { randomHex() }.first { it !in joined }
+            val toSend = removePending.joinToString(split)
+            options.ethScheduler.execute {
+                contract.removeFilesMultiple(toSend, split)
+            }
+            removePending = invalidatedList()
+        }
+        val flushAddPending = {
+            val order = addPending.entries.toList()
+            val keyJoined = order.joinToString("") { it.key }
+            val valueJoined = order.joinToString("") { it.value }
+            val compSplit = generateSequence { randomHex() }.first { it !in keyJoined && it !in valueJoined }
+
+            val toSendKey = order.joinToString(compSplit) { it.key }
+            val toSendValue = order.joinToString(compSplit) { it.value }
+            val keyValueJoined = toSendKey + toSendValue
+            val kvSplit = generateSequence { randomHex() }.first { it !in keyValueJoined }
+            val toSendFinal = toSendKey + kvSplit + toSendValue
+
+            options.ethScheduler.execute {
+                contract.setFilesMultiple(toSendFinal, kvSplit, compSplit)
+            }
+            addPending = invalidatedMap()
+        }
+
+        when (action) {
+            Action.SET_FILE -> {
+                // flush remove
+                if (removePending.isNotEmpty()) {
+                    flushRemovePending()
+                }
+                // flush adds if overflow
+                if (addPending.size > 10) {
+                    flushAddPending()
+                }
+            }
+            Action.REMOVE -> {
+                // flush adds
+                if (addPending.isNotEmpty()) {
+                    flushAddPending()
+                }
+                // flush remove if overflow
+                if (removePending.size > 10) {
+                    flushRemovePending()
                 }
             }
         }
@@ -113,7 +178,11 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
     }
 
     private inline fun <T> invalidating(f: () -> T): T = notClosed {
-        hasChanged = true
+        listCache = InvalidatedList
         f()
+    }
+
+    private enum class Action {
+        SET_FILE, REMOVE
     }
 }
