@@ -25,6 +25,7 @@ contract FileSourceContract {
         }
         fileList.length = 0;
         alive = false;
+        selfdestruct(msg.owner);
     }
 
     modifier noAlive() {
@@ -39,7 +40,7 @@ contract FileSourceContract {
     }
 
     function isAlive() public view noAlive returns (int) {
-        return alive ? int(1) : int(-1);
+        return alive ? int(1) : int(- 1);
     }
 
     function setFile(string filename, string ipfsDir) public restricted {
@@ -53,8 +54,9 @@ contract FileSourceContract {
     }
 
     function removeFile(string filename) public restricted returns (bool){
+        bytes32 nameHashes = keccak256(abi.encodePacked(filename));
         for (uint i = 0; i < fileList.length; i++) {
-            if (keccak256(abi.encodePacked(fileList[i])) == keccak256(abi.encodePacked(filename))) {
+            if (keccak256(abi.encodePacked(fileList[i])) == nameHashed) {
                 fileList[i] = fileList[fileList.length - 1];
                 fileList.length--;
             }
@@ -74,16 +76,19 @@ contract FileSourceContract {
         uint length = 0;
         uint flLength = fileList.length;
         for (uint i = 0; i < flLength; i++) {
-            length += (bytes(fileList[i]).length + 1);
+            length += bytes(fileList[i]).length;
         }
+        length += flLength - 1;
         bytes memory data = new bytes(length);
         uint offset = 0;
         for (i = 0; i < flLength; i++) {
+            if (i > 0) {
+                data[offset++] = terminator;
+            }
             bytes storage entry = bytes(fileList[i]);
             for (uint j = 0; j < bytes(entry).length; j++) {
                 data[offset++] = entry[j];
             }
-            data[offset++] = terminator;
         }
         return string(data);
     }
