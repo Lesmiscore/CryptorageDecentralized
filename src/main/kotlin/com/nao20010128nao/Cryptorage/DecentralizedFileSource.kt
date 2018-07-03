@@ -50,6 +50,7 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
     }
 
     override fun commit() {
+        sendOrNothing(Action.COMMIT)
     }
 
     override fun delete(name: String) {
@@ -162,6 +163,10 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
                     flushRemovePending()
                 }
             }
+            Action.COMMIT -> {
+                flushAddPending()
+                flushRemovePending()
+            }
         }
     }
 
@@ -183,6 +188,6 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
     }
 
     private enum class Action {
-        SET_FILE, REMOVE
+        SET_FILE, REMOVE, COMMIT
     }
 }
