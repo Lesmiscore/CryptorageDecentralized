@@ -20,12 +20,12 @@ internal object InvalidatedMap : Map<Nothing, Nothing> by emptyMap()
 internal inline fun <E> invalidatedList(): List<E> = InvalidatedList
 internal inline fun <K, V> invalidatedMap(): Map<K, V> = InvalidatedMap as Map<K, V>
 
-internal inline fun randomBytes(size: Int = 16): ByteArray = ByteArray(size).also {
+internal inline fun randomBytes(size: Int = 4): ByteArray = ByteArray(size).also {
     SecureRandom().nextBytes(it)
 }
 
 internal inline fun ByteArray.toHex(): String = joinToString("") { "%02x".format(it) }
-internal inline fun randomHex(size: Int = 16): String = randomBytes(size).toHex()
+internal inline fun randomHex(size: Int = 4): String = randomBytes(size).toHex()
 internal inline fun <K, V> Map<K, V>.setValue(key: K, value: V): Map<K, V> = toMutableMap().also {
     it[key] = value
 }

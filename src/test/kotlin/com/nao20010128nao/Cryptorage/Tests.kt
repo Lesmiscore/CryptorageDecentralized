@@ -8,6 +8,7 @@ import org.web3j.crypto.Credentials
 import org.web3j.crypto.ECKeyPair
 import org.web3j.protocol.Web3j
 import org.web3j.protocol.http.HttpService
+import java.math.BigInteger
 import java.security.SecureRandom
 
 class Tests {
@@ -20,7 +21,8 @@ class Tests {
     }
     val options = DecentralizedFileSourceOptions(
             contractAddress = contract,
-            privateKey = privateKey
+            privateKey = privateKey,
+            gasPrice = gwei * BigInteger.TEN
     )
 
     //@Test
@@ -59,7 +61,7 @@ class Tests {
         println(ma.bytes.joinToString("") { "%02x".format(it) })
     }
 
-    //@Test
+    @Test
     fun testSimple() {
         val fs = DecentralizedFileSource(options)
         val cryptorage = fs.withV1Encryption("Decentralized")
@@ -73,7 +75,7 @@ class Tests {
         val fs = DecentralizedFileSource(options)
         val cryptorage = fs.withV1Encryption("Decentralized")
         println("Writing")
-        (1..10).forEach {
+        (1..20).forEach {
             println("Writing: $it")
             cryptorage.put("aa$it").write("Say YES for decentralized file system!".toByteArray())
         }
