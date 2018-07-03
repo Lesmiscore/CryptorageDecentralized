@@ -115,32 +115,7 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
         if (!contractVersion.hasMultipleAddDel) {
             return
         }
-        val flushRemovePending = {
-            val joined = removePending.joinToString("")
-            val split = generateSequence { randomHex() }.first { it !in joined }
-            val toSend = removePending.joinToString(split)
-            options.ethScheduler.execute {
-                contract.removeFilesMultiple(toSend, split)
-            }
-            removePending = invalidatedList()
-        }
-        val flushAddPending = {
-            val order = addPending.entries.toList()
-            val keyJoined = order.joinToString("") { it.key }
-            val valueJoined = order.joinToString("") { it.value }
-            val compSplit = generateSequence { randomHex() }.first { it !in keyJoined && it !in valueJoined }
 
-            val toSendKey = order.joinToString(compSplit) { it.key }
-            val toSendValue = order.joinToString(compSplit) { it.value }
-            val keyValueJoined = toSendKey + toSendValue
-            val kvSplit = generateSequence { randomHex() }.first { it !in keyValueJoined }
-            val toSendFinal = toSendKey + kvSplit + toSendValue
-
-            options.ethScheduler.execute {
-                contract.setFilesMultiple(toSendFinal, kvSplit, compSplit)
-            }
-            addPending = invalidatedMap()
-        }
 
         when (action) {
             Action.SET_FILE -> {
@@ -168,6 +143,34 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
                 flushRemovePending()
             }
         }
+    }
+
+    private fun flushRemovePending() {
+        val joined = removePending.joinToString("")
+        val split = generateSequence { randomHex() }.first { it !in joined }
+        val toSend = removePending.joinToString(split)
+        options.ethScheduler.execute {
+            contract.removeFilesMultiple(toSend, split)
+        }
+        removePending = invalidatedList()
+    }
+
+    private fun flushAddPending() {
+        val order = addPending.entries.toList()
+        val keyJoined = order.joinToString("") { it.key }
+        val valueJoined = order.joinToString("") { it.value }
+        val compSplit = generateSequence { randomHex() }.first { it !in keyJoined && it !in valueJoined }
+
+        val toSendKey = order.joinToString(compSplit) { it.key }
+        val toSendValue = order.joinToString(compSplit) { it.value }
+        val keyValueJoined = toSendKey + toSendValue
+        val kvSplit = generateSequence { randomHex() }.first { it !in keyValueJoined }
+        val toSendFinal = toSendKey + kvSplit + toSendValue
+
+        options.ethScheduler.execute {
+            contract.setFilesMultiple(toSendFinal, kvSplit, compSplit)
+        }
+        addPending = invalidatedMap()
     }
 
     fun explode() {
