@@ -11,6 +11,7 @@ import io.ipfs.multihash.Multihash
 import org.web3j.crypto.Credentials
 import org.web3j.crypto.ECKeyPair
 import org.web3j.protocol.Web3j
+import org.web3j.protocol.Web3jService
 import org.web3j.protocol.http.HttpService
 import org.web3j.tx.exceptions.ContractCallException
 import java.io.ByteArrayInputStream
@@ -19,7 +20,11 @@ import java.io.InputStream
 import java.io.OutputStream
 
 class DecentralizedFileSource(private val options: DecentralizedFileSourceOptions) : FileSource {
-    private val web3j: Web3j = Web3j.build(HttpService(options.ethRemote))
+    private val web3j: Web3j = try {
+        Web3j.build(HttpService(options.ethRemote))
+    } catch (e: Throwable) {
+        Class.forName("org.web3j.protocol.Web3jFactory").getMethod("build", Web3jService::class.java).invoke(null, HttpService(options.ethRemote))
+    } as Web3j
     private val ipfs: IPFS = IPFS(options.ipfsRemote.toCrazyMultiAddress())
     private val keyPair = ECKeyPair.create(options.privateKey)
     private val contract = FileSourceContract.load(
