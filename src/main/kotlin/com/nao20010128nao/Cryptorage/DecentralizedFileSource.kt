@@ -11,7 +11,6 @@ import io.ipfs.multihash.Multihash
 import org.web3j.crypto.Credentials
 import org.web3j.crypto.ECKeyPair
 import org.web3j.protocol.Web3j
-import org.web3j.protocol.Web3jService
 import org.web3j.protocol.http.HttpService
 import org.web3j.tx.exceptions.ContractCallException
 import java.io.ByteArrayInputStream
@@ -20,11 +19,7 @@ import java.io.InputStream
 import java.io.OutputStream
 
 class DecentralizedFileSource(private val options: DecentralizedFileSourceOptions) : FileSource {
-    private val web3j: Web3j = try {
-        Web3j.build(HttpService(options.ethRemote))
-    } catch (e: Throwable) {
-        Class.forName("org.web3j.protocol.Web3jFactory").getMethod("build", Web3jService::class.java).invoke(null, HttpService(options.ethRemote))
-    } as Web3j
+    private val web3j: Web3j = obtainWeb3j(HttpService(options.ethRemote))
     private val ipfs: IPFS = IPFS(options.ipfsRemote.toCrazyMultiAddress())
     private val keyPair = ECKeyPair.create(options.privateKey)
     private val contract = FileSourceContract.load(
@@ -88,7 +83,7 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
     }
 
     override fun open(name: String, offset: Int): ByteSource = object : ByteSource() {
-        val ipfsAddress by lazy { contract.getFile(name).send()!! }
+        val ipfsAddress by lazy { getCorrespondingIpfsFile(name) }
         val ipfsResult by lazy { ipfs.cat(Multihash.fromBase58(ipfsAddress))!! }
         override fun openStream(): InputStream = ByteArrayInputStream(ipfsResult, offset, ipfsResult.size - offset)
         override fun sizeIfKnown(): Optional<Long> = try {
@@ -103,18 +98,26 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
             override fun openStream(): OutputStream = object : ByteArrayOutputStream() {
                 override fun close() {
                     val whatToSend = ipfs.add(NamedStreamable.ByteArrayWrapper(name, toByteArray()))[0].hash.toBase58()
-                    if (contractVersion.hasMultipleAddDel) {
-                        addPending = addPending.setValue(name, whatToSend)
-                        sendOrNothing(Action.SET_FILE)
-                    } else {
-                        options.ethScheduler.execute {
-                            contract.setFile(name, whatToSend).send()
-                        }
-                    }
+                    setIpfsFileDirectly(name, whatToSend)
                 }
             }
         }
     }
+
+    internal fun getCorrespondingIpfsFile(name: String): String = (addPending[name] ?: contract.getFile(name).send())!!
+
+    internal fun setIpfsFileDirectly(name: String, whatToSend: String) {
+        if (contractVersion.hasMultipleAddDel) {
+            addPending = addPending.setValue(name, whatToSend)
+            sendOrNothing(Action.SET_FILE)
+        } else {
+            options.ethScheduler.execute {
+                contract.setFile(name, whatToSend).send()
+            }
+        }
+    }
+
+    internal fun getAllIpfsFiles(): Map<String, String> = list().map { it to getCorrespondingIpfsFile(it) }.toMap()
 
     private fun sendOrNothing(action: Action) {
         if (!contractVersion.hasMultipleAddDel) {
@@ -152,7 +155,7 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
 
     private fun flushRemovePending() {
         val joined = removePending.joinToString("")
-        val split = generateSequence { randomHex() }.first { it !in joined }
+        val split = generateSequence { randomHex(3) }.first { it !in joined }
         val toSend = removePending.joinToString(split)
         options.ethScheduler.execute {
             contract.removeFilesMultiple(toSend, split).send()
@@ -164,12 +167,12 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
         val order = addPending.entries.toList()
         val keyJoined = order.joinToString("") { it.key }
         val valueJoined = order.joinToString("") { it.value }
-        val compSplit = generateSequence { randomHex() }.first { it !in keyJoined && it !in valueJoined }
+        val compSplit = generateSequence { randomHex(3) }.first { it !in keyJoined && it !in valueJoined }
 
         val toSendKey = order.joinToString(compSplit) { it.key }
         val toSendValue = order.joinToString(compSplit) { it.value }
         val keyValueJoined = toSendKey + toSendValue
-        val kvSplit = generateSequence { randomHex() }.first { it !in keyValueJoined }
+        val kvSplit = generateSequence { randomHex(3) }.first { it !in keyValueJoined }
         val toSendFinal = toSendKey + kvSplit + toSendValue
 
         options.ethScheduler.execute {
@@ -179,6 +182,9 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
     }
 
     fun explode() {
+        list().forEach {
+            delete(it)
+        }
         options.ethScheduler.execute {
             contract.explode().send()
         }

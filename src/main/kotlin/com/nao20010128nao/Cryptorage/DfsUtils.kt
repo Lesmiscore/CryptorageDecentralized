@@ -3,6 +3,8 @@
 package com.nao20010128nao.Cryptorage
 
 import io.ipfs.multiaddr.MultiAddress
+import org.web3j.protocol.Web3j
+import org.web3j.protocol.Web3jService
 import java.security.SecureRandom
 
 internal val gwei = 1_000_000_000.toBigInteger()
@@ -29,3 +31,9 @@ internal inline fun randomHex(size: Int = 4): String = randomBytes(size).toHex()
 internal inline fun <K, V> Map<K, V>.setValue(key: K, value: V): Map<K, V> = toMutableMap().also {
     it[key] = value
 }
+
+internal inline fun obtainWeb3j(service: Web3jService): Web3j = try {
+    Web3j.build(service)
+} catch (e: Throwable) {
+    Class.forName("org.web3j.protocol.Web3jFactory").getMethod("build", Web3jService::class.java).invoke(null, service)
+} as Web3j
