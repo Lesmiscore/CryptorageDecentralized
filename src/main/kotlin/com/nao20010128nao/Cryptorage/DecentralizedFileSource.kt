@@ -147,8 +147,12 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
                 }
             }
             Action.COMMIT -> {
-                flushAddPending()
-                flushRemovePending()
+                if (addPending.isNotEmpty()) {
+                    flushAddPending()
+                }
+                if (removePending.isNotEmpty()) {
+                    flushRemovePending()
+                }
             }
         }
     }
