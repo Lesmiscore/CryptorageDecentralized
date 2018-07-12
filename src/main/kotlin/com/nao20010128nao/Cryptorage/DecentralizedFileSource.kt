@@ -158,17 +158,29 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
     }
 
     private fun flushRemovePending() {
-        val joined = removePending.joinToString("")
+        val rmPending = removePending.toList()
+        removePending = invalidatedList()
+        val joined = rmPending.joinToString("")
         val split = generateSequence { randomHex(3) }.first { it !in joined }
-        val toSend = removePending.joinToString(split)
+        val toSend = rmPending.joinToString(split)
         options.ethScheduler.execute {
             contract.removeFilesMultiple(toSend, split).send()
+            try {
+                contract.removeFilesMultiple(toSend, split).send()
+            } catch (e: Throwable) {
+                rmPending.forEach {
+                    try {
+                        contract.removeFile(it).send()
+                    } catch (e: Throwable) {
+                    }
+                }
+            }
         }
-        removePending = invalidatedList()
     }
 
     private fun flushAddPending() {
         val order = addPending.entries.toList()
+        addPending = invalidatedMap()
         val keyJoined = order.joinToString("") { it.key }
         val valueJoined = order.joinToString("") { it.value }
         val compSplit = generateSequence { randomHex(3) }.first { it !in keyJoined && it !in valueJoined }
@@ -180,9 +192,17 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
         val toSendFinal = toSendKey + kvSplit + toSendValue
 
         options.ethScheduler.execute {
-            contract.setFilesMultiple(toSendFinal, kvSplit, compSplit).send()
+            try {
+                contract.setFilesMultiple(toSendFinal, kvSplit, compSplit).send()
+            } catch (e: Throwable) {
+                order.forEach {
+                    try {
+                        contract.setFile(it.key, it.value).send()
+                    } catch (e: Throwable) {
+                    }
+                }
+            }
         }
-        addPending = invalidatedMap()
     }
 
     fun explode() {
