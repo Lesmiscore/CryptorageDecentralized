@@ -49,7 +49,7 @@ class Tests {
                 privateKey = privateKey
         )
         val w3j = Web3j.build(HttpService(options.ethRemote))
-        val cred = Credentials.create(ECKeyPair.create(privateKey))
+        val cred = Credentials.create(ECKeyPair.create(options.privateKey))
         println(FileSourceContract.deploy(w3j, cred, options.gasPrice, options.gasLimit).send().contractAddress)
     }
 
