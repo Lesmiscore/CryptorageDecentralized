@@ -72,11 +72,12 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
             listCache = try {
                 contract.getFileListCombined(byteArrayOf(7)).send().split(7.toChar()).dropLastWhile { it.isEmpty() }
             } catch (e: ContractCallException) {
-                try {
+                /*try {
                     (0 until contract.fileListLength.send().intValueExact()).map { contract.getFileList(it.toBigInteger()).send() }
                 } catch (e: ContractCallException) {
                     emptyList()
-                }
+                }*/
+                emptyList()
             }
         }
         listCache.toTypedArray()
