@@ -72,15 +72,17 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
             listCache = try {
                 contract.getFileListCombined(byteArrayOf(7)).send().split(7.toChar()).dropLastWhile { it.isEmpty() }
             } catch (e: ContractCallException) {
-                if (e.message == "Empty value (0x) returned from contract") {
+                try {
+                    (0 until contract.fileListLength.send().intValueExact()).map { contract.getFileList(it.toBigInteger()).send() }
+                } catch (e: ContractCallException) {
                     emptyList()
-                } else {
-                    throw e
                 }
             }
         }
         listCache.toTypedArray()
     }
+
+    override fun has(name: String): Boolean = super.has(name) || contract.getFile("manifest").send().isNotEmpty()
 
     override fun open(name: String, offset: Int): ByteSource = object : ByteSource() {
         val ipfsAddress by lazy { getCorrespondingIpfsFile(name) }
