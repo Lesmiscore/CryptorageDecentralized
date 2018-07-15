@@ -18,7 +18,7 @@ contract FileSourceContract {
     }
 
     function getVersion() public pure returns (uint) {
-        return 2;
+        return 3;
     }
 
     function explode() public restricted {

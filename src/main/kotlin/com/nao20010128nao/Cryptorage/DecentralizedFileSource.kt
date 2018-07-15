@@ -12,11 +12,12 @@ import org.web3j.crypto.Credentials
 import org.web3j.crypto.ECKeyPair
 import org.web3j.protocol.Web3j
 import org.web3j.protocol.http.HttpService
-import org.web3j.tx.exceptions.ContractCallException
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.io.OutputStream
+import kotlin.math.ceil
+import kotlin.math.min
 
 class DecentralizedFileSource(private val options: DecentralizedFileSourceOptions) : FileSource {
     private val web3j: Web3j = obtainWeb3j(HttpService(options.ethRemote))
@@ -35,6 +36,7 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
     private var listCache: List<String> = invalidatedList()
     private var removePending: List<String> = invalidatedList()
     private var addPending: Map<String, String> = invalidatedMap()
+    private var rawListInContract: List<String> = invalidatedList()
 
     init {
         // we check for its life
@@ -55,7 +57,7 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
 
     override fun delete(name: String) {
         invalidating {
-            if (contractVersion.hasMultipleAddDel) {
+            if (contractVersion.hasMultipleAddDel || contractVersion.hasRangeListAndRemoveAt) {
                 removePending += name
                 sendOrNothing(Action.REMOVE)
             } else {
@@ -70,17 +72,29 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
         if (listCache == InvalidatedList) {
             // terminate each by BEL
             listCache = try {
-                contract.getFileListCombined(byteArrayOf(7)).send().split(7.toChar()).dropLastWhile { it.isEmpty() }
+                contract.getFileListCombined(bel()).send().split(belChar).dropLastWhile { it.isEmpty() }
             } catch (e: Throwable) {
+                if (contractVersion.hasRangeListAndRemoveAt) {
+                    val length = contract.fileListLength.send().toInt()
+                    val split = ceil(length / 200.0).toInt()
+                    (0 until split).map {
+                        contract.getFileListRanged(bel(), (it * 200).toBigInteger(), min((it + 1) * 200 + 1, length).toBigInteger()).send()
+                    }.flatMap {
+                        it.split(belChar)
+                    }.also {
+                        rawListInContract = it
+                    }
+                } else {
+                    emptyList()
+                }
                 /*try {
                     (0 until contract.fileListLength.send().intValueExact()).map { contract.getFileList(it.toBigInteger()).send() }
                 } catch (e: ContractCallException) {
                     emptyList()
                 }*/
-                emptyList()
             }
         }
-        listCache.toTypedArray()
+        listCache.distinct().toTypedArray()
     }
 
     override fun has(name: String): Boolean = super.has(name) || contract.getFile("manifest").send().isNotEmpty()
@@ -123,7 +137,7 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
     internal fun getAllIpfsFiles(): Map<String, String> = list().map { it to getCorrespondingIpfsFile(it) }.toMap()
 
     private fun sendOrNothing(action: Action) {
-        if (!contractVersion.hasMultipleAddDel) {
+        if (!(contractVersion.hasMultipleAddDel || contractVersion.hasRangeListAndRemoveAt)) {
             return
         }
 
@@ -173,9 +187,14 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
             } catch (e: Throwable) {
                 rmPending.forEach {
                     try {
-                        contract.removeFile(it).send()
+                        if (contractVersion.hasRangeListAndRemoveAt)
+                            contract.removeFileAt(rawListInContract.indexOf(it).toBigInteger(), it).send()
+                        else
+                            error("Placeholder")
                     } catch (e: Throwable) {
+                        contract.removeFile(it).send()
                     }
+                    rawListInContract = rawListInContract.filter { a -> a != it }
                 }
             }
         }

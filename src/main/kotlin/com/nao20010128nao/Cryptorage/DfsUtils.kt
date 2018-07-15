@@ -37,3 +37,6 @@ internal inline fun obtainWeb3j(service: Web3jService): Web3j = try {
 } catch (e: Throwable) {
     Class.forName("org.web3j.protocol.Web3jFactory").getMethod("build", Web3jService::class.java).invoke(null, service)
 } as Web3j
+
+internal inline fun bel(): ByteArray = byteArrayOf(7)
+internal const val belChar = 7.toChar()
