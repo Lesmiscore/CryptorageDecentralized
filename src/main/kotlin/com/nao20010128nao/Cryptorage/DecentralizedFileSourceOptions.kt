@@ -13,5 +13,7 @@ data class DecentralizedFileSourceOptions(
         val gasPrice: BigInteger = gwei,
         val gasLimit: BigInteger = defaultGasLimit,
         val ethScheduler: TaskScheduler = DirectTaskScheduler,
-        val httpClient:OkHttpClient=OkHttpClient.Builder().build()!!
+        val httpClient: OkHttpClient = OkHttpClient.Builder().build()!!,
+        val ethSleepDuration: Int = 15 * 1000,
+        val ethSleepAttempts: Int = 40
 )

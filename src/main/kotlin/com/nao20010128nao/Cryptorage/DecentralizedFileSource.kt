@@ -12,6 +12,7 @@ import org.web3j.crypto.Credentials
 import org.web3j.crypto.ECKeyPair
 import org.web3j.protocol.Web3j
 import org.web3j.protocol.http.HttpService
+import org.web3j.tx.RawTransactionManager
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
@@ -26,7 +27,12 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
     private val contract = FileSourceContract.load(
             options.contractAddress,
             web3j,
-            Credentials.create(keyPair),
+            RawTransactionManager(
+                    web3j,
+                    Credentials.create(keyPair),
+                    options.ethSleepAttempts,
+                    options.ethSleepDuration
+            ),
             options.gasPrice,
             options.gasLimit
     )
