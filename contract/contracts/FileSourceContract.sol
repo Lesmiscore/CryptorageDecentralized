@@ -61,6 +61,7 @@ contract FileSourceContract {
             if (keccak256(abi.encodePacked(fileList[i])) == nameHashed) {
                 fileList[i] = fileList[fileList.length - 1];
                 fileList.length--;
+                break;
             }
         }
         files[filename] = "";
