@@ -200,7 +200,7 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
                     } catch (e: Throwable) {
                         contract.removeFile(it).send()
                     }
-                    rawListInContract = rawListInContract.filter { a -> a != it }
+                    rawListInContract -= it
                 }
             }
         }
