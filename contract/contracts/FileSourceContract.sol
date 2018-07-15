@@ -127,4 +127,31 @@ contract FileSourceContract {
             files[keyStr] = valueStr;
         }
     }
+
+    function getFileListRanged(byte terminator, uint start, uint end) public view restricted returns (string) {
+        uint length = 0;
+        for (uint i = start; i < end; i++) {
+            length += bytes(fileList[i]).length;
+        }
+        length += (end - start) - 1;
+        bytes memory data = new bytes(length);
+        uint offset = 0;
+        for (i = start; i < end; i++) {
+            if (i > 0) {
+                data[offset++] = terminator;
+            }
+            bytes storage entry = bytes(fileList[i]);
+            for (uint j = 0; j < entry.length; j++) {
+                data[offset++] = entry[j];
+            }
+        }
+        return string(data);
+    }
+
+    function removeFileAt(uint pos, string expected) public restricted {
+        require(keccak256(abi.encodePacked(fileList[pos])) == keccak256(abi.encodePacked(expected)));
+        fileList[pos] = fileList[fileList.length - 1];
+        fileList.length--;
+        files[expected] = "";
+    }
 }
