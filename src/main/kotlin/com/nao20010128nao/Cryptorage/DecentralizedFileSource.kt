@@ -187,7 +187,6 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
         val split = generateSequence { randomHex(3) }.first { it !in joined }
         val toSend = rmPending.joinToString(split)
         options.ethScheduler.execute {
-            contract.removeFilesMultiple(toSend, split).send()
             try {
                 contract.removeFilesMultiple(toSend, split).send()
             } catch (e: Throwable) {
