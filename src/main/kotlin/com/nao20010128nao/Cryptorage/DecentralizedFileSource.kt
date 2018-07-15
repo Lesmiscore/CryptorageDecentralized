@@ -20,7 +20,7 @@ import kotlin.math.ceil
 import kotlin.math.min
 
 class DecentralizedFileSource(private val options: DecentralizedFileSourceOptions) : FileSource {
-    private val web3j: Web3j = obtainWeb3j(HttpService(options.ethRemote))
+    private val web3j: Web3j = obtainWeb3j(HttpService(options.ethRemote, options.httpClient, false))
     private val ipfs: IPFS = IPFS(options.ipfsRemote.toCrazyMultiAddress())
     private val keyPair = ECKeyPair.create(options.privateKey)
     private val contract = FileSourceContract.load(

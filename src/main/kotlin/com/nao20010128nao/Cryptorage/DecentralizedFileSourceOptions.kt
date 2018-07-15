@@ -2,6 +2,7 @@ package com.nao20010128nao.Cryptorage
 
 import com.nao20010128nao.Cryptorage.runner.DirectTaskScheduler
 import com.nao20010128nao.Cryptorage.runner.TaskScheduler
+import okhttp3.OkHttpClient
 import java.math.BigInteger
 
 data class DecentralizedFileSourceOptions(
@@ -11,5 +12,6 @@ data class DecentralizedFileSourceOptions(
         val privateKey: BigInteger,
         val gasPrice: BigInteger = gwei,
         val gasLimit: BigInteger = defaultGasLimit,
-        val ethScheduler: TaskScheduler = DirectTaskScheduler
+        val ethScheduler: TaskScheduler = DirectTaskScheduler,
+        val httpClient:OkHttpClient=OkHttpClient.Builder().build()!!
 )
