@@ -81,14 +81,18 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
                 contract.getFileListCombined(bel()).send().split(belChar).dropLastWhile { it.isEmpty() }
             } catch (e: Throwable) {
                 if (contractVersion.hasRangeListAndRemoveAt) {
-                    val length = contract.fileListLength.send().toInt()
-                    val split = ceil(length / 200.0).toInt()
-                    (0 until split).map {
-                        contract.getFileListRanged(bel(), (it * 200).toBigInteger(), min((it + 1) * 200 + 1, length).toBigInteger()).send()
-                    }.flatMap {
-                        it.split(belChar)
-                    }.also {
-                        rawListInContract = it
+                    try {
+                        val length = contract.fileListLength.send().toInt()
+                        val split = ceil(length / 200.0).toInt()
+                        (0 until split).map {
+                            contract.getFileListRanged(bel(), (it * 200).toBigInteger(), min((it + 1) * 200 + 1, length).toBigInteger()).send()
+                        }.flatMap {
+                            it.split(belChar)
+                        }.also {
+                            rawListInContract = it
+                        }
+                    } catch (e: Throwable) {
+                        emptyList<String>()
                     }
                 } else {
                     emptyList()
