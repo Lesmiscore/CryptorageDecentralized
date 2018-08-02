@@ -12,7 +12,7 @@ contract FileSourceContractLight {
     mapping(string => string) private files;
     bool private alive;
 
-    function FileSourceContract() public {
+    function FileSourceContractLight() public {
         owner = msg.sender;
         alive = true;
     }
