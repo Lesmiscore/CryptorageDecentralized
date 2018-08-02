@@ -28,7 +28,7 @@ repositories {
 
 dependencies {
     compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
-    compile 'com.github.nao20010128nao:Cryptorage:936cfaa'
+    compile 'com.github.nao20010128nao:Cryptorage:b2b7e76'
     compile 'org.web3j:core:3.4.0'
     compile 'com.github.nao20010128nao:java-ipfs-api:3106a36'
     compile 'com.github.multiformats:java-multiaddr:v1.3.0'

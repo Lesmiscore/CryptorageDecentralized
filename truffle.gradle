@@ -26,7 +26,7 @@ task truffleCompile(type: Exec) {
     outputs.files "./contracts/build"
 }
 
-task web3jContractWrapper(type: Exec) {
+task web3jContractWrapper1(type: Exec) {
     dependsOn "truffleCompile"
     workingDir "."
     commandLine "env", "web3j", "truffle", "generate", "./contract/build/contracts/FileSourceContract.json", "-o", "./src/solidity", "-p", "com.nao20010128nao.Cryptorage.internal.contract"
@@ -35,4 +35,13 @@ task web3jContractWrapper(type: Exec) {
     outputs.files "./src/solidity"
 }
 
-compileKotlin.dependsOn "web3jContractWrapper"
+task web3jContractWrapper2(type: Exec) {
+    dependsOn "truffleCompile"
+    workingDir "."
+    commandLine "env", "web3j", "truffle", "generate", "./contract/build/contracts/FileSourceContractLight.json", "-o", "./src/solidity", "-p", "com.nao20010128nao.Cryptorage.internal.contract"
+    environment "PATH": pathEnv
+    inputs.files "./contract/build"
+    outputs.files "./src/solidity"
+}
+
+compileKotlin.dependsOn "web3jContractWrapper1", "web3jContractWrapper2"
