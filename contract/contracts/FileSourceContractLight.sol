@@ -1,4 +1,4 @@
-pragma solidity ^0.4.19;
+pragma solidity ^0.4.24;
 
 import "./strings.sol";
 
@@ -12,7 +12,7 @@ contract FileSourceContractLight {
     mapping(string => string) private files;
     bool private alive;
 
-    function FileSourceContractLight() public {
+    constructor() public {
         owner = msg.sender;
         alive = true;
     }

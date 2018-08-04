@@ -12,7 +12,7 @@ contract FileSourceContract {
     string[] private fileList;
     bool private alive;
 
-    function FileSourceContract() public {
+    constructor() public {
         owner = msg.sender;
         alive = true;
     }
