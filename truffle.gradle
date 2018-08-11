@@ -9,7 +9,7 @@ if type truffle && type web3j ; then
   echo OK > ok
   exit 0
 fi
-wget -qO- https://nodejs.org/dist/v10.5.0/node-v10.5.0-linux-x64.tar.xz | tar -xJf - --strip-components=1
+wget -qO- https://nodejs.org/dist/v10.8.0/node-v10.8.0-linux-x64.tar.xz | tar -xJf - --strip-components=1
 ./bin/node ./bin/npm i -g truffle solc
 wget -qO- https://github.com/web3j/web3j/releases/download/v3.4.0/web3j-3.4.0.tar | tar -xf - --strip-components=1
 """
