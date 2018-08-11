@@ -17,6 +17,7 @@ import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.io.OutputStream
+import java.util.concurrent.Future
 import kotlin.math.ceil
 import kotlin.math.min
 
@@ -124,7 +125,9 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
         object : ByteSink() {
             override fun openStream(): OutputStream = object : ByteArrayOutputStream() {
                 override fun close() {
-                    val whatToSend = ipfs.add(NamedStreamable.ByteArrayWrapper(name, toByteArray()))[0].hash.toBase58()
+                    val whatToSend = options.ipfsScheduler.executeWithValue {
+                        ipfs.add(NamedStreamable.ByteArrayWrapper(name, toByteArray()))[0].hash.toBase58()
+                    }
                     setIpfsFileDirectly(name, whatToSend)
                 }
             }
@@ -133,13 +136,13 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
 
     internal fun getCorrespondingIpfsFile(name: String): String = (addPending[name] ?: contract.getFile(name).send())!!
 
-    internal fun setIpfsFileDirectly(name: String, whatToSend: String) {
+    internal fun setIpfsFileDirectly(name: String, whatToSend: Future<String>) {
         if (contractVersion.hasMultipleAddDel) {
-            addPending = addPending.setValue(name, whatToSend)
+            addPending = addPending.setValue(name, whatToSend.get())
             sendOrNothing(Action.SET_FILE)
         } else {
             options.ethScheduler.execute {
-                contract.setFile(name, whatToSend).send()
+                contract.setFile(name, whatToSend.get()).send()
             }
         }
     }
