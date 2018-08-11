@@ -48,24 +48,16 @@ internal fun <T> lazyFuture(func: () -> T): Future<T> = object : Future<T> {
     val funcValue by funcLazy
 
     override fun isDone(): Boolean = funcLazy.isInitialized()
-
     override fun get(): T = funcValue
-
     override fun get(p0: Long, p1: TimeUnit?): T = funcValue
-
     override fun cancel(p0: Boolean): Boolean = false
-
     override fun isCancelled(): Boolean = false
 }
 
 internal fun <T> constFuture(value: T): Future<T> = object : Future<T> {
     override fun isDone(): Boolean = true
-
     override fun get(): T = value
-
     override fun get(p0: Long, p1: TimeUnit?): T = value
-
     override fun cancel(p0: Boolean): Boolean = false
-
     override fun isCancelled(): Boolean = false
 }
