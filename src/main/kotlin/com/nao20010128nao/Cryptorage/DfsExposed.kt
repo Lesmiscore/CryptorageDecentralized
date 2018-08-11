@@ -12,9 +12,9 @@ fun DecentralizedFileSourceOptions.deploy(light: Boolean = false): Pair<Decentra
     val keyPair = ECKeyPair.create(privateKey)
     val cred = Credentials.create(keyPair)
     val contract = (if (light)
-        FileSourceContractLight.deploy(web3j, cred, gasPrice, gasLimit).send()
+        FileSourceContractLight.deploy(web3j, cred, gasPrice, gasLimit)
     else
-        FileSourceContract.deploy(web3j, cred, gasPrice, gasLimit).send()).contractAddress
+        FileSourceContract.deploy(web3j, cred, gasPrice, gasLimit)).send().contractAddress
     val updated = copy(contractAddress = contract)
     return updated to DecentralizedFileSource(updated)
 }
