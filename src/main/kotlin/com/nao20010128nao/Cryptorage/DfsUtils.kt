@@ -6,6 +6,8 @@ import io.ipfs.multiaddr.MultiAddress
 import org.web3j.protocol.Web3j
 import org.web3j.protocol.Web3jService
 import java.security.SecureRandom
+import java.util.concurrent.Future
+import java.util.concurrent.TimeUnit
 
 internal val gwei = 1_000_000_000.toBigInteger()
 internal val defaultGasLimit = 4500000.toBigInteger()
@@ -40,3 +42,30 @@ internal inline fun obtainWeb3j(service: Web3jService): Web3j = try {
 
 internal inline fun bel(): ByteArray = byteArrayOf(7)
 internal const val belChar = 7.toChar()
+
+internal fun <T> lazyFuture(func: () -> T): Future<T> = object : Future<T> {
+    val funcLazy = lazy { func() }
+    val funcValue by funcLazy
+
+    override fun isDone(): Boolean = funcLazy.isInitialized()
+
+    override fun get(): T = funcValue
+
+    override fun get(p0: Long, p1: TimeUnit?): T = funcValue
+
+    override fun cancel(p0: Boolean): Boolean = false
+
+    override fun isCancelled(): Boolean = false
+}
+
+internal fun <T> constFuture(value: T): Future<T> = object : Future<T> {
+    override fun isDone(): Boolean = true
+
+    override fun get(): T = value
+
+    override fun get(p0: Long, p1: TimeUnit?): T = value
+
+    override fun cancel(p0: Boolean): Boolean = false
+
+    override fun isCancelled(): Boolean = false
+}

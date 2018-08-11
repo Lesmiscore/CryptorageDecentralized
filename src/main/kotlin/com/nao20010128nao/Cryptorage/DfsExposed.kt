@@ -21,6 +21,6 @@ fun DecentralizedFileSourceOptions.deploy(light: Boolean = false): Pair<Decentra
 
 fun DecentralizedFileSource.transferTo(dest: DecentralizedFileSource) {
     getAllIpfsFiles().forEach { name, ipfs ->
-        dest.setIpfsFileDirectly(name, ipfs)
+        dest.setIpfsFileDirectly(name, constFuture(ipfs))
     }
 }
