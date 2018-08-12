@@ -17,6 +17,7 @@ class DecentralizedFileSourceBuilder(val options: DecentralizedFileSourceOptions
     fun gasPrice(value: BigInteger) = DecentralizedFileSourceBuilder(options.copy(gasPrice = value))
     fun gasLimit(value: BigInteger) = DecentralizedFileSourceBuilder(options.copy(gasLimit = value))
     fun ethScheduler(value: TaskScheduler) = DecentralizedFileSourceBuilder(options.copy(ethScheduler = value))
+    fun ipfsScheduler(value: TaskScheduler) = DecentralizedFileSourceBuilder(options.copy(ipfsScheduler = value))
     fun httpClient(value: OkHttpClient) = DecentralizedFileSourceBuilder(options.copy(httpClient = value))
     fun ethSleepDuration(value: Int) = DecentralizedFileSourceBuilder(options.copy(ethSleepDuration = value))
     fun ethSleepAttempts(value: Int) = DecentralizedFileSourceBuilder(options.copy(ethSleepAttempts = value))
