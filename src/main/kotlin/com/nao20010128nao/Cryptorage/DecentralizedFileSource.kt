@@ -56,6 +56,7 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
 
     override fun close() {
         options.ethScheduler.waitForAll()
+        options.ipfsScheduler.waitForAll()
     }
 
     override fun commit() {
