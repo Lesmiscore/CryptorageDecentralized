@@ -36,10 +36,8 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
                     return web3jRaw.ethCall(modTx, defaultBlockParameter)
                 } catch (e: Throwable) {
                     if (e.message!!.contains("replacement transaction underpriced")) {
-                        val newNonce = (
-                                modTx.nonce?.toBigInteger()
-                                        ?: web3jRaw.ethGetTransactionCount(credentials.address, null).send().transactionCount
-                                )!! + BigInteger.ONE
+                        val newNonce = modTx.nonce?.toBigInteger()?.let { it + BigInteger.ONE }
+                                ?: web3jRaw.ethGetTransactionCount(credentials.address, null).send().transactionCount
                         modTx = Transaction(
                                 modTx.from,
                                 newNonce,
