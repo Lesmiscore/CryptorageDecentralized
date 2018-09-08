@@ -80,3 +80,15 @@ internal inline fun Transaction.makeNonceFixedTransaction(web3j: Web3j, credenti
             data
     )
 }
+
+internal inline fun limitedOrForever(iter: Int, func: () -> Unit) {
+    if (iter < 0) {
+        while (true) {
+            func()
+        }
+    } else {
+        (0..iter).forEach {
+            func()
+        }
+    }
+}

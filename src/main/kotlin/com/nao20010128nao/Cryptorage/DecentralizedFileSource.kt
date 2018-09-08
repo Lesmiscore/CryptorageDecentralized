@@ -30,9 +30,9 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
     private val web3j: Web3j = object : Web3j by web3jRaw {
         override fun ethSendTransaction(transaction: Transaction): Request<*, EthSendTransaction> {
             var modTx = transaction
-            while (true) {
+            limitedOrForever(options.ethReplaceTransactionUnderpricedRetries) {
                 try {
-                    return web3jRaw.ethSendTransaction(modTx)
+                    return@ethSendTransaction web3jRaw.ethSendTransaction(modTx)
                 } catch (e: Throwable) {
                     if (e.message!!.contains("replacement transaction underpriced")) {
                         modTx = modTx.makeNonceFixedTransaction(web3jRaw, credentials)
@@ -42,6 +42,7 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
                     }
                 }
             }
+            error("wtf")
         }
     }
     private val keyPair = ECKeyPair.create(options.privateKey)
@@ -54,11 +55,16 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
     ) {
         override fun sendTransaction(gasPrice: BigInteger?, gasLimit: BigInteger?, to: String?, data: String?, value: BigInteger?): EthSendTransaction {
             var error: Throwable? = null
-            for (i in (0..9)) {
+            limitedOrForever(options.ethReplaceTransactionUnderpricedRetries) {
                 try {
-                    return super.sendTransaction(gasPrice, gasLimit, to, data, value)
+                    return@sendTransaction super.sendTransaction(gasPrice, gasLimit, to, data, value)
                 } catch (e: Throwable) {
-                    error = e
+                    if (e.message!!.contains("replacement transaction underpriced")) {
+                        error = e
+                    } else {
+                        // rethrow
+                        throw e
+                    }
                 }
             }
             throw error!!

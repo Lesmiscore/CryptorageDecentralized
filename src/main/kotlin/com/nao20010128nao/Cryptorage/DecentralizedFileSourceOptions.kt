@@ -18,5 +18,6 @@ data class DecentralizedFileSourceOptions(
         val ipfsScheduler: TaskScheduler = SimpleAsyncTaskScheduler(),
         val httpClient: OkHttpClient = OkHttpClient.Builder().build()!!,
         val ethSleepDuration: Int = 15 * 1000,
-        val ethSleepAttempts: Int = 40
+        val ethSleepAttempts: Int = 40,
+        val ethReplaceTransactionUnderpricedRetries: Int = -1
 )
