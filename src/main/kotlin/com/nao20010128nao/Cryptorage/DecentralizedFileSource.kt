@@ -11,26 +11,61 @@ import io.ipfs.multihash.Multihash
 import org.web3j.crypto.Credentials
 import org.web3j.crypto.ECKeyPair
 import org.web3j.protocol.Web3j
+import org.web3j.protocol.core.DefaultBlockParameter
+import org.web3j.protocol.core.Request
+import org.web3j.protocol.core.methods.request.Transaction
+import org.web3j.protocol.core.methods.response.EthCall
 import org.web3j.protocol.http.HttpService
 import org.web3j.tx.RawTransactionManager
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.io.OutputStream
+import java.math.BigInteger
 import java.util.concurrent.Future
 import kotlin.math.ceil
 import kotlin.math.min
 
 class DecentralizedFileSource(private val options: DecentralizedFileSourceOptions) : FileSource {
-    private val web3j: Web3j = obtainWeb3j(HttpService(options.ethRemote, options.httpClient, false))
+    private val web3jRaw: Web3j = obtainWeb3j(HttpService(options.ethRemote, options.httpClient, false))
+    private val web3j: Web3j = object : Web3j by web3jRaw {
+        override fun ethCall(transaction: Transaction, defaultBlockParameter: DefaultBlockParameter?): Request<*, EthCall> {
+            var modTx = transaction
+            while (true) {
+                try {
+                    return web3jRaw.ethCall(modTx, defaultBlockParameter)
+                } catch (e: Throwable) {
+                    if (e.message!!.contains("replacement transaction underpriced")) {
+                        val newNonce = (
+                                modTx.nonce?.toBigInteger()
+                                        ?: web3jRaw.ethGetTransactionCount(credentials.address, null).send().transactionCount
+                                )!! + BigInteger.ONE
+                        modTx = Transaction(
+                                modTx.from,
+                                newNonce,
+                                modTx.gasPrice?.toBigInteger(),
+                                modTx.gas?.toBigInteger(),
+                                modTx.to,
+                                modTx.value?.toBigInteger(),
+                                modTx.data
+                        )
+                    } else {
+                        // rethrow
+                        throw e
+                    }
+                }
+            }
+        }
+    }
     private val ipfs: IPFS = IPFS(options.ipfsRemote.toCrazyMultiAddress())
     private val keyPair = ECKeyPair.create(options.privateKey)
+    private val credentials: Credentials = Credentials.create(keyPair)
     private val contract = FileSourceContract.load(
             options.contractAddress,
             web3j,
             RawTransactionManager(
                     web3j,
-                    Credentials.create(keyPair),
+                    credentials,
                     options.ethSleepAttempts,
                     options.ethSleepDuration
             ),
