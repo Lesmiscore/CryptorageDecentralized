@@ -21,6 +21,7 @@ class DecentralizedFileSourceBuilder(val options: DecentralizedFileSourceOptions
     fun httpClient(value: OkHttpClient) = DecentralizedFileSourceBuilder(options.copy(httpClient = value))
     fun ethSleepDuration(value: Int) = DecentralizedFileSourceBuilder(options.copy(ethSleepDuration = value))
     fun ethSleepAttempts(value: Int) = DecentralizedFileSourceBuilder(options.copy(ethSleepAttempts = value))
+    fun ethReplaceTransactionUnderpricedRetries(value: Int) = DecentralizedFileSourceBuilder(options.copy(ethReplaceTransactionUnderpricedRetries = value))
 
     override fun equals(other: Any?): Boolean = other is DecentralizedFileSourceBuilder && other.options == options
     override fun hashCode(): Int = options.hashCode()
