@@ -3,8 +3,12 @@
 package com.nao20010128nao.Cryptorage
 
 import io.ipfs.multiaddr.MultiAddress
+import org.web3j.crypto.Credentials
 import org.web3j.protocol.Web3j
 import org.web3j.protocol.Web3jService
+import org.web3j.protocol.core.DefaultBlockParameterName
+import org.web3j.protocol.core.methods.request.Transaction
+import java.math.BigInteger
 import java.security.SecureRandom
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
@@ -60,4 +64,19 @@ internal fun <T> constFuture(value: T): Future<T> = object : Future<T> {
     override fun get(p0: Long, p1: TimeUnit?): T = value
     override fun cancel(p0: Boolean): Boolean = false
     override fun isCancelled(): Boolean = false
+}
+
+internal inline fun Transaction.makeNonceFixedTransaction(web3j: Web3j, credentials: Credentials): Transaction {
+    val newNonce = this.nonce?.toBigInteger()?.let { it + BigInteger.ONE }
+            ?: (web3j.ethGetTransactionCount(credentials.address, DefaultBlockParameterName.PENDING).send().transactionCount
+                    - BigInteger.ONE)
+    return Transaction(
+            from,
+            newNonce,
+            gasPrice?.toBigInteger(),
+            gas?.toBigInteger(),
+            to,
+            value?.toBigInteger(),
+            data
+    )
 }

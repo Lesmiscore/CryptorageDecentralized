@@ -11,11 +11,9 @@ import io.ipfs.multihash.Multihash
 import org.web3j.crypto.Credentials
 import org.web3j.crypto.ECKeyPair
 import org.web3j.protocol.Web3j
-import org.web3j.protocol.core.DefaultBlockParameter
-import org.web3j.protocol.core.DefaultBlockParameterName
 import org.web3j.protocol.core.Request
 import org.web3j.protocol.core.methods.request.Transaction
-import org.web3j.protocol.core.methods.response.EthCall
+import org.web3j.protocol.core.methods.response.EthSendTransaction
 import org.web3j.protocol.http.HttpService
 import org.web3j.tx.RawTransactionManager
 import java.io.ByteArrayInputStream
@@ -30,25 +28,14 @@ import kotlin.math.min
 class DecentralizedFileSource(private val options: DecentralizedFileSourceOptions) : FileSource {
     private val web3jRaw: Web3j = obtainWeb3j(HttpService(options.ethRemote, options.httpClient, false))
     private val web3j: Web3j = object : Web3j by web3jRaw {
-        override fun ethCall(transaction: Transaction, defaultBlockParameter: DefaultBlockParameter?): Request<*, EthCall> {
+        override fun ethSendTransaction(transaction: Transaction): Request<*, EthSendTransaction> {
             var modTx = transaction
             while (true) {
                 try {
-                    return web3jRaw.ethCall(modTx, defaultBlockParameter)
+                    return web3jRaw.ethSendTransaction(modTx)
                 } catch (e: Throwable) {
                     if (e.message!!.contains("replacement transaction underpriced")) {
-                        val newNonce = modTx.nonce?.toBigInteger()?.let { it + BigInteger.ONE }
-                                ?: (web3jRaw.ethGetTransactionCount(credentials.address, DefaultBlockParameterName.PENDING).send().transactionCount
-                                        - BigInteger.ONE)
-                        modTx = Transaction(
-                                modTx.from,
-                                newNonce,
-                                modTx.gasPrice?.toBigInteger(),
-                                modTx.gas?.toBigInteger(),
-                                modTx.to,
-                                modTx.value?.toBigInteger(),
-                                modTx.data
-                        )
+                        modTx = modTx.makeNonceFixedTransaction(web3jRaw, credentials)
                     } else {
                         // rethrow
                         throw e
@@ -57,18 +44,31 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
             }
         }
     }
-    private val ipfs: IPFS = IPFS(options.ipfsRemote.toCrazyMultiAddress())
     private val keyPair = ECKeyPair.create(options.privateKey)
     private val credentials: Credentials = Credentials.create(keyPair)
+    private val fakeTransactionManager = object : RawTransactionManager(
+            web3j,
+            credentials,
+            options.ethSleepAttempts,
+            options.ethSleepDuration
+    ) {
+        override fun sendTransaction(gasPrice: BigInteger?, gasLimit: BigInteger?, to: String?, data: String?, value: BigInteger?): EthSendTransaction {
+            var error: Throwable? = null
+            for (i in (0..9)) {
+                try {
+                    return super.sendTransaction(gasPrice, gasLimit, to, data, value)
+                } catch (e: Throwable) {
+                    error = e
+                }
+            }
+            throw error!!
+        }
+    }
+    private val ipfs: IPFS = IPFS(options.ipfsRemote.toCrazyMultiAddress())
     private val contract = FileSourceContract.load(
             options.contractAddress,
             web3j,
-            RawTransactionManager(
-                    web3j,
-                    credentials,
-                    options.ethSleepAttempts,
-                    options.ethSleepDuration
-            ),
+            fakeTransactionManager,
             options.gasPrice,
             options.gasLimit
     )
