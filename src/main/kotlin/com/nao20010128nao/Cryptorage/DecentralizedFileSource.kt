@@ -12,6 +12,7 @@ import org.web3j.crypto.Credentials
 import org.web3j.crypto.ECKeyPair
 import org.web3j.protocol.Web3j
 import org.web3j.protocol.core.DefaultBlockParameter
+import org.web3j.protocol.core.DefaultBlockParameterName
 import org.web3j.protocol.core.Request
 import org.web3j.protocol.core.methods.request.Transaction
 import org.web3j.protocol.core.methods.response.EthCall
@@ -37,7 +38,8 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
                 } catch (e: Throwable) {
                     if (e.message!!.contains("replacement transaction underpriced")) {
                         val newNonce = modTx.nonce?.toBigInteger()?.let { it + BigInteger.ONE }
-                                ?: web3jRaw.ethGetTransactionCount(credentials.address, null).send().transactionCount
+                                ?: (web3jRaw.ethGetTransactionCount(credentials.address, DefaultBlockParameterName.PENDING).send().transactionCount
+                                        - BigInteger.ONE)
                         modTx = Transaction(
                                 modTx.from,
                                 newNonce,
