@@ -15,6 +15,7 @@ import org.web3j.protocol.core.Request
 import org.web3j.protocol.core.methods.request.Transaction
 import org.web3j.protocol.core.methods.response.EthSendTransaction
 import org.web3j.protocol.core.methods.response.TransactionReceipt
+import org.web3j.protocol.exceptions.TransactionException
 import org.web3j.protocol.http.HttpService
 import org.web3j.tx.RawTransactionManager
 import java.io.ByteArrayInputStream
@@ -31,17 +32,10 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
     private val web3j: Web3j = object : Web3j by web3jRaw {
         override fun ethSendTransaction(transaction: Transaction): Request<*, EthSendTransaction> {
             var modTx = transaction
-            limitedOrForever(options.ethReplaceTransactionUnderpricedRetries) {
-                try {
-                    return@ethSendTransaction web3jRaw.ethSendTransaction(modTx)
-                } catch (e: Throwable) {
-                    if (e.message!!.contains("replacement transaction underpriced")) {
-                        modTx = modTx.makeNonceFixedTransaction(web3jRaw, credentials)
-                    } else {
-                        // rethrow
-                        throw e
-                    }
-                }
+            retryForTx(errorTx = {
+                modTx = modTx.makeNonceFixedTransaction(web3jRaw, credentials)
+            }) {
+                return@ethSendTransaction web3jRaw.ethSendTransaction(modTx)
             }
             error("wtf")
         }
@@ -56,17 +50,10 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
     ) {
         override fun executeTransaction(gasPrice: BigInteger?, gasLimit: BigInteger?, to: String?, data: String?, value: BigInteger?): TransactionReceipt {
             var error: Throwable? = null
-            limitedOrForever(options.ethReplaceTransactionUnderpricedRetries) {
-                try {
-                    return@executeTransaction super.executeTransaction(gasPrice, gasLimit, to, data, value)
-                } catch (e: Throwable) {
-                    if (e.message!!.contains("replacement transaction underpriced")) {
-                        error = e
-                    } else {
-                        // rethrow
-                        throw e
-                    }
-                }
+            retryForTx(errorTx = {
+                error = it
+            }) {
+                return@executeTransaction super.executeTransaction(gasPrice, gasLimit, to, data, value)
             }
             throw error!!
         }
@@ -300,6 +287,22 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
     private inline fun <T> invalidating(f: () -> T): T = notClosed {
         listCache = InvalidatedList
         f()
+    }
+
+    private inline fun retryForTx(errorTx: (Throwable) -> Unit, errorOther: (Throwable) -> Unit = { throw it }, trial: () -> Unit) {
+        limitedOrForever(options.ethReplaceTransactionUnderpricedRetries) {
+            try {
+                trial()
+            } catch (e: Throwable) {
+                when {
+                    e is TransactionException ||
+                            e.message!!.contains("replacement transaction underpriced") ||
+                            e.message!!.contains("nonce too low") -> errorTx(e)
+                    else -> // rethrow
+                        errorOther(e)
+                }
+            }
+        }
     }
 
     private enum class Action {
