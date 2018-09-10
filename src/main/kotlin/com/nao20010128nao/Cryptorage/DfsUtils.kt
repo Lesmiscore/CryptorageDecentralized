@@ -92,3 +92,5 @@ internal inline fun limitedOrForever(iter: Int, func: () -> Unit) {
         }
     }
 }
+
+internal inline operator fun String?.contains(str: String): Boolean = this?.contains(str, false) ?: false

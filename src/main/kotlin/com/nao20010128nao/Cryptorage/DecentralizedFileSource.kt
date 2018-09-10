@@ -296,8 +296,8 @@ class DecentralizedFileSource(private val options: DecentralizedFileSourceOption
             } catch (e: Throwable) {
                 when {
                     e is TransactionException ||
-                            e.message!!.contains("replacement transaction underpriced") ||
-                            e.message!!.contains("nonce too low") -> errorTx(e)
+                            "replacement transaction underpriced" in e.message ||
+                            "nonce too low" in e.message -> errorTx(e)
                     else -> // rethrow
                         errorOther(e)
                 }
