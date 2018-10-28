@@ -87,7 +87,7 @@ internal inline fun limitedOrForever(iter: Int, func: () -> Unit) {
             func()
         }
     } else {
-        (0..iter).forEach {
+        repeat(iter) {
             func()
         }
     }
